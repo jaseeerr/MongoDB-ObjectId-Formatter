@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON File Uploader</title>
+  <!-- Include Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+ <div class="max-w-md mx-auto bg-white p-6 rounded-md shadow-md">
+    <h2 class="text-2xl font-semibold mb-4">JSON File Uploader</h2>
+
+    <input type="file" id="jsonFileInput" class="mb-4" accept=".json">
+
+    <button onclick="handleFileUpload()" class="bg-blue-500 text-white px-4 py-2 rounded-md">Upload and Display</button>
+    <button onclick="downloadJsonFile()" class="mt-4 bg-green-500 text-white px-4 py-2 rounded-md">Download Modified JSON</button>
+
+    <div id="jsonOutput" class="mt-6"></div>
+
+  </div>
+
+ <script>
+  function handleFileUpload() {
+    const fileInput = document.getElementById('jsonFileInput');
+    const jsonOutput = document.getElementById('jsonOutput');
+
+    const file = fileInput.files[0];
+
+    if (file) {
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        const content = e.target.result;
+
+        try {
+          let jsonData = JSON.parse(content);
+          jsonData = formatIdField(jsonData);
+          displayJson(jsonData);
+        } catch (error) {
+          jsonOutput.innerHTML = '<p class="text-red-500">Error parsing JSON file. Please upload a valid JSON file.</p>';
+        }
+      };
+
+      reader.readAsText(file);
+    } else {
+      jsonOutput.innerHTML = '<p class="text-red-500">Please select a JSON file.</p>';
+    }
+  }
+
+ function formatIdField(jsonData) {
+    function processId(obj) {
+      if (obj && typeof obj === 'object') {
+        for (const key in obj) {
+          if (key === '_id' && typeof obj[key] === 'string') {
+            obj[key] = { "$oid": obj[key] };
+          } else if (typeof obj[key] === 'object') {
+            processId(obj[key]);
+          }
+        }
+      }
+    }
+
+    processId(jsonData);
+    return jsonData;
+  }
+
+  function displayJson(jsonData) {
+    const jsonOutput = document.getElementById('jsonOutput');
+    const formattedJson = JSON.stringify(jsonData, null, 2);
+
+    jsonOutput.innerHTML = '<p class="text-green-500">JSON content:</p><pre class="bg-gray-200 p-4 rounded-md">' + formattedJson + '</pre>';
+  }
+
+  function downloadJsonFile() {
+    const jsonOutput = document.getElementById('jsonOutput');
+
+    if (jsonOutput.innerHTML) {
+      const jsonData = JSON.parse(jsonOutput.querySelector('pre').innerText);
+      const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+
+      link.href = window.URL.createObjectURL(blob);
+      link.download = 'modified_json_file.json';
+      link.click();
+    } else {
+      alert('No JSON content to download. Please upload a valid JSON file.');
+    }
+  }
+</script>
+</body>
+</html>
